@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Enaza Music SMS &amp; USSD Logger</string>
+    <string name="toolbar_title">Enaza Music\nSMS &amp; USSD Logger</string>
+    <string name="viewpager_title_logged_data">Logged Data</string>
+    <string name="viewpager_title_queue">Queue</string>
+    <string name="ok">OK</string>
+    <string name="logged_data_list_is_empty">Logged Data list is empty now, \nmake a USSD call or receive SMS</string>
+    <string name="permission_necessary">All permissions are necessary for this application</string>
+    <string name="grant_permissions_title">Please grant all permissions</string>
+    <string name="grant_permissions_subtitle">We need permission to read SMS %s \nPlease click OK and grant permissions in the following pop-ups.</string>
+    <string name="grant_permission_subt_pre30_addition">and access the phone.</string>
+    <string name="enable_accessibility_title">Please enable Enaza Music accessibility service</string>
+    <string name="enable_accessibility_subtitle">We need this service to receive responses from USSD commands.\n\nPlease:\n1. Click OK and you will be redirected to the accessibility services window.\n2. Please turn on the Enaza Music service \n3. And go back to the application.</string>
+    <string name="service_is_enabled">Thank you! Service is enabled now</string>
+    <string name="accessibility_service_description">This service helps to get the results of USSD calls</string>
+    <string name="enable_accessibility_service">It is necessary to enable USSD accessibility service</string>
+</resources>

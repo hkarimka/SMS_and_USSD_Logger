@@ -1,0 +1,2 @@
+include ':app'
+rootProject.name = "Enaza Music SMS & USSD Logger"
