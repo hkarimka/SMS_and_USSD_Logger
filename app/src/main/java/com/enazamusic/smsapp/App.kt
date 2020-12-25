@@ -10,7 +10,6 @@ class App: Application() {
     private val module = module {
         viewModel { ViewModelLoggedDataFragment() }
         single {  }
-
     }
 
     override fun onCreate() {
