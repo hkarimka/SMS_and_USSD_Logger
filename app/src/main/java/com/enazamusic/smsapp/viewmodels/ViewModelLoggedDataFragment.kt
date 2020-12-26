@@ -19,18 +19,25 @@ class ViewModelLoggedDataFragment : ViewModel(), KoinComponent {
     private val context: Context by inject()
     private var formattedSmsAndUssdList = mutableListOf<ListViewElement>()
 
-    fun newSmsReceived() {
-        Prefs.setFormattedSmsAndUssdList(formattedSmsAndUssdList)
+    fun newSmsReceived(): MutableList<String> {
+        val list = getMergedLists()
+        Prefs.setFormattedSmsAndUssdList(list)
+        return formatList(list)
     }
 
-    fun newUssdReceived(ussd: ListViewElement) {
+    fun newUssdReceived(ussd: ListViewElement): MutableList<String> {
         formattedSmsAndUssdList.add(ussd)
         Prefs.setFormattedSmsAndUssdList(formattedSmsAndUssdList)
+        return formatList(formattedSmsAndUssdList)
     }
 
     fun getFormattedSmsAndUssdList(): MutableList<String> {
+        return formatList(getMergedLists())
+    }
+
+    private fun formatList(list: MutableList<ListViewElement>): MutableList<String> {
         val formattedList = mutableListOf<String>()
-        getMergedLists().forEach {
+        list.forEach {
             formattedList.add(it.formatted())
         }
         return formattedList

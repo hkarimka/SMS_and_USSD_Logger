@@ -48,22 +48,23 @@ class LoggedDataFragment : Fragment(), KoinComponent {
 
         smsAndUssdReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
+                var list = mutableListOf<String>()
                 when (intent.action) {
                     BroadcastHelper.ACTION_NEW_SMS_RECEIVED -> {
-                        vm.newSmsReceived()
+                        list = vm.newSmsReceived()
                     }
                     BroadcastHelper.ACTION_NEW_USSD_RECEIVED -> {
                         val element = intent.getParcelableExtra<ListViewElement>(BroadcastHelper.EXTRA_USSD) ?: return
-                        vm.newUssdReceived(element)
+                        list = vm.newUssdReceived(element)
                     }
                 }
-                updateAdapterElements()
+                updateAdapterElements(list)
             }
         }
 
         permissionsGrantedReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                updateAdapterElements()
+                updateAdapterElements(vm.getFormattedSmsAndUssdList())
             }
         }
 
@@ -74,7 +75,7 @@ class LoggedDataFragment : Fragment(), KoinComponent {
         )
         listview.adapter = adapter
         registerReceivers()
-        updateAdapterElements()
+        updateAdapterElements(vm.getFormattedSmsAndUssdList())
     }
 
     override fun onDestroy() {
@@ -82,8 +83,7 @@ class LoggedDataFragment : Fragment(), KoinComponent {
         unregisterReceivers()
     }
 
-    private fun updateAdapterElements() {
-        val list = vm.getFormattedSmsAndUssdList()
+    private fun updateAdapterElements(list: MutableList<String>) {
         if (list.isNotEmpty()) {
             adapter.clear()
             adapter.addAll(list)
