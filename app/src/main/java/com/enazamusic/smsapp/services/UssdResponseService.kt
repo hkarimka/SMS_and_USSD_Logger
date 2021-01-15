@@ -34,8 +34,11 @@ class UssdResponseService : AccessibilityService() {
             source.text.toString()
         }
 
+        // in some devices, onAccessibilityEvent() function is called multiple times for one response,
+        // so we round time to one second to get only unique responses
+        val timeRoundedToOneSecond = 1000 * (System.currentTimeMillis() / 1000)
         val ussd = ListViewElement(
-            UUID.randomUUID().toString(), System.currentTimeMillis(), false,
+            UUID.randomUUID().toString(), timeRoundedToOneSecond, false,
             ListViewElement.Direction.IN, ListViewElement.Type.USSD, null, text
         )
         BroadcastHelper.newUssdReceived(ussd)

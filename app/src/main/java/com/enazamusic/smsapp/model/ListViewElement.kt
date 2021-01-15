@@ -39,17 +39,21 @@ class ListViewElement(
 
     override fun equals(other: Any?): Boolean {
        return (other != null && other is ListViewElement
-               && id == other.id
+               && type == other.type
+               && direction == other.direction
+               && smsSender == other.smsSender
                && date == other.date
                && text == other.text
                && isSentToServer == other.isSentToServer)
     }
 
     override fun hashCode(): Int {
-        var result = id.hashCode()
-        result = 31 * result + date.hashCode()
+        var result = date.hashCode()
         result = 31 * result + isSentToServer.hashCode()
         result = 31 * result + text.hashCode()
+        result = 31 * result + direction.hashCode()
+        result = 31 * result + type.hashCode()
+        result = 31 * result + (smsSender?.hashCode() ?: 0)
         return result
     }
 

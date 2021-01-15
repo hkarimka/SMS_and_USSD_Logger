@@ -20,9 +20,12 @@ class UssdRequestReceiver : BroadcastReceiver() {
         if (intent.action == OUTGOING_CALL_ACTION) {
             val phoneNumber = intent.extras?.getString(INTENT_PHONE_NUMBER) ?: ""
             if (phoneNumber.startsWith("*") && phoneNumber.endsWith("#")) {
+                // in some devices, onReceive() function is called multiple times for one request,
+                // so we round time to one second to get only unique requests
+                val timeRoundedToOneSecond = 1000 * (System.currentTimeMillis() / 1000)
                 val ussd = ListViewElement(
                     UUID.randomUUID().toString(),
-                    System.currentTimeMillis(),
+                    timeRoundedToOneSecond,
                     false,
                     ListViewElement.Direction.OUT,
                     ListViewElement.Type.USSD,

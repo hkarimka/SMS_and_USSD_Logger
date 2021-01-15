@@ -34,19 +34,6 @@ object Prefs : KoinComponent {
         editor().putStringSet(FORMATTED_SMS_AND_USSD_LIST, stringsSet).apply()
     }
 
-    fun getLastSmsListReceivedDate(): Long {
-        val date = prefs().getLong(LAST_SMS_LIST_RECEIVED_DATE, 0L)
-        return if (date == 0L) {
-            context.packageManager.getPackageInfo(context.packageName, 0).firstInstallTime
-        } else {
-            date
-        }
-    }
-
-    fun setLastSmsReceivedDate(date: Long) {
-        editor().putLong(LAST_SMS_LIST_RECEIVED_DATE, date).apply()
-    }
-
     private fun prefs(): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }

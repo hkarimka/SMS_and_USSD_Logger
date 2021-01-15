@@ -2,32 +2,30 @@ package com.enazamusic.smsapp
 
 import android.Manifest
 import android.accessibilityservice.AccessibilityServiceInfo
-import android.app.Activity
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
-import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.accessibility.AccessibilityManager
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.MutableLiveData
 import com.enazamusic.smsapp.adapters.ViewPagerAdapter
 import com.enazamusic.smsapp.fragments.LoggedDataFragment
 import com.enazamusic.smsapp.fragments.QueueFragment
 import com.enazamusic.smsapp.model.ViewPagerElement
-import com.enazamusic.smsapp.receivers.SmsReceiver
 import com.enazamusic.smsapp.services.UssdResponseService
 import com.enazamusic.smsapp.utils.BroadcastHelper
+import com.enazamusic.smsapp.utils.UpdateDownloader
 import com.enazamusic.smsapp.viewmodels.ViewModelMainActivity
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_main.*
@@ -39,6 +37,7 @@ class MainActivity : AppCompatActivity(), KoinComponent {
     private val vm: ViewModelMainActivity by viewModel()
     private val requestPermissionsCode = 123
     private var enableAccessibilityIntentStarted = false
+    private var allowAppInstallingIntentStarted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +56,41 @@ class MainActivity : AppCompatActivity(), KoinComponent {
                 showServiceNecessarySnackbar()
             }
             enableAccessibilityIntentStarted = false
+            checkAndAllowAppInstalling()
         }
+        if (allowAppInstallingIntentStarted) {
+            if (isAppInstallingAllowed()) {
+                Snackbar.make(toolbar, R.string.app_installing_is_allowed, Snackbar.LENGTH_SHORT)
+                    .show()
+                checkUpdate()
+            } else {
+                showAppInstallingNecessarySnackbar()
+            }
+            allowAppInstallingIntentStarted = false
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.toolbar_menu, menu)
+        val item = menu.findItem(R.id.menu_check_for_updates)
+        item.title = getString(R.string.toolbar_menu_check_for_updates, BuildConfig.VERSION_NAME)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.menu_check_for_updates -> {
+                Toast.makeText(this, "Stub: Download and install fixed update", Toast.LENGTH_SHORT)
+                    .show()
+                UpdateDownloader.checkAndInstallUpdateStub()
+                return true
+            }
+            R.id.menu_about -> {
+                Toast.makeText(this, "about", Toast.LENGTH_SHORT).show()
+                return true
+            }
+        }
+        return false
     }
 
     private fun setupViewPager() {
@@ -83,7 +116,11 @@ class MainActivity : AppCompatActivity(), KoinComponent {
         val permissions: Array<String>
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             permissions =
-                arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS, Manifest.permission.PROCESS_OUTGOING_CALLS)
+                arrayOf(
+                    Manifest.permission.READ_SMS,
+                    Manifest.permission.RECEIVE_SMS,
+                    Manifest.permission.PROCESS_OUTGOING_CALLS
+                )
             subtitle = getString(
                 R.string.grant_permissions_subtitle,
                 getString(R.string.grant_permission_subt_pre30_addition)
@@ -149,6 +186,12 @@ class MainActivity : AppCompatActivity(), KoinComponent {
         return false
     }
 
+    private fun isAppInstallingAllowed(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            packageManager.canRequestPackageInstalls()
+        } else true
+    }
+
     private fun checkAndStartAccessibilityService() {
         if (!isAccessibilityServiceEnabled()) {
             val builder = AlertDialog.Builder(this)
@@ -166,12 +209,45 @@ class MainActivity : AppCompatActivity(), KoinComponent {
                 startActivity(intent)
             }
             builder.show()
+        } else {
+            checkAndAllowAppInstalling()
+        }
+    }
+
+    private fun checkAndAllowAppInstalling() {
+        if (!isAppInstallingAllowed() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val builder = AlertDialog.Builder(this)
+            builder.setTitle(getString(R.string.allow_app_installing_title))
+            builder.setMessage(getString(R.string.allow_app_installing_subtitle))
+            builder.setOnCancelListener {
+                if (!isAppInstallingAllowed()) {
+                    showAppInstallingNecessarySnackbar()
+                }
+            }
+            builder.setPositiveButton(getString(R.string.ok)) { _, _ ->
+                allowAppInstallingIntentStarted = true
+                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                intent.data = Uri.parse("package:$packageName")
+                startActivity(intent)
+            }
+            builder.show()
+        } else {
+            checkUpdate()
         }
     }
 
     private fun showServiceNecessarySnackbar() {
         Snackbar.make(toolbar, R.string.enable_accessibility_service, Snackbar.LENGTH_LONG)
             .show()
+    }
+
+    private fun showAppInstallingNecessarySnackbar() {
+        Snackbar.make(toolbar, R.string.allow_app_installing_snackbar, Snackbar.LENGTH_LONG)
+            .show()
+    }
+
+    private fun checkUpdate() {
+        UpdateDownloader.checkAndInstallUpdate()
     }
 
     override fun onRequestPermissionsResult(
