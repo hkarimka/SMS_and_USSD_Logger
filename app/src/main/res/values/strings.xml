@@ -7,18 +7,42 @@
     <string name="logged_data_list_is_empty">Logged Data list is empty now, \nmake a USSD call or receive SMS</string>
     <string name="permission_necessary">All permissions are necessary for this application</string>
     <string name="grant_permissions_title">Please grant all permissions</string>
-    <string name="grant_permissions_subtitle">We need permissions:\n - to read SMS; %s.\nPlease click OK and grant permissions in the following pop-ups.</string>
+    <string name="grant_permissions_subtitle">We need permissions:\n - to send and read SMS; %s\n - make a USSD call.\nPlease click OK and grant permissions in the following pop-ups.</string>
     <string name="grant_permission_subt_pre30_addition">\n - access the phone;</string>
     <string name="enable_accessibility_title">Please enable Enaza Music accessibility service</string>
     <string name="enable_accessibility_subtitle">We need this service to receive responses from USSD commands.\n\nPlease:\n1. Click OK and you will be redirected to the accessibility services window.\n2. Please turn on the Enaza Music service \n3. And go back to the application.</string>
     <string name="service_is_enabled">Thank you! Service is enabled now</string>
     <string name="accessibility_service_description">This service helps to get the results of USSD calls</string>
     <string name="enable_accessibility_service">It is necessary to enable USSD accessibility service</string>
-    <string name="toolbar_menu_check_for_updates">Check for updates %s</string>
+    <string name="toolbar_menu_check_for_updates">Check for update %s</string>
     <string name="toolbar_menu_about">About</string>
+    <string name="toolbar_menu_change_phone_number">Change phone number</string>
+    <string name="toolbar_menu_add_queue_elem">Add queue element</string>
     <string name="download_description">Download the latest version of the application</string>
     <string name="app_installing_is_allowed">Thank you! App installing is enabled now</string>
     <string name="allow_app_installing_snackbar">It is necessary to allow installing apps from our app</string>
     <string name="allow_app_installing_title">Please allow installing apps from our app</string>
     <string name="allow_app_installing_subtitle">It is necessary to install updates of our application.\n\nPlease:\n1. Click OK and you will be redirected to the Install unknown apps window.\n2. Please allow installing from this source.\n3. And go back to the application.</string>
+    <string name="checking_for_update">Checking for update…</string>
+    <string name="update_is_available">Update is available; downloading update…</string>
+    <string name="update_is_not_available">New update is not available now</string>
+    <string name="please_enter_number_title">Please enter your phone number</string>
+    <string name="please_enter_number_subtitle">It is necessary to identify a sender of USSD calls.</string>
+    <string name="current_phone_number">Your current phone number is: %s</string>
+    <string name="confirm_phone_number">We defined that your phone number is: %s. Click Change if it is not true</string>
+    <string name="change">Change</string>
+    <string name="queue_list_empty">Queue is empty now</string>
+    <string name="non_delivered_messages">Non-delivered Messages: %d\nLast Transfer Attempt: %s\nLast HTTP Response Code: %d</string>
+    <string name="resend">Resend</string>
+
+    <string-array name="spinner_type">
+        <item>USSD</item>
+        <item>SMS</item>
+    </string-array>
+    <string name="queue_id">Queue id</string>
+    <string name="type">Type</string>
+    <string name="recipient">Recipient number</string>
+    <string name="text">Text</string>
+    <string name="task_planned">New task is planned</string>
+    <string name="something_wrong">Something went wrong</string>
 </resources>

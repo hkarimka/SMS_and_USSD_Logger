@@ -1,0 +1,16 @@
+{
+  "data": [
+    {
+      "message_queue_id": "1",
+      "type": "USSD",
+      "destination": null,
+      "text": "*100#"
+    },
+    {
+      "message_queue_id": "2",
+      "type": "SMS",
+      "destination": "900",
+      "text": "Баланс"
+    }
+  ]
+}

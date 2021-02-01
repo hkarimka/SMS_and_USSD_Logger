@@ -5,11 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.TextView
+import androidx.core.text.HtmlCompat
 import androidx.fragment.app.Fragment
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enazamusic.smsapp.R
@@ -17,6 +18,7 @@ import com.enazamusic.smsapp.model.ListViewElement
 import com.enazamusic.smsapp.utils.BroadcastHelper
 import com.enazamusic.smsapp.viewmodels.ViewModelLoggedDataFragment
 import kotlinx.android.synthetic.main.fragment_logged_data.*
+import kotlinx.android.synthetic.main.view_non_delivered.view.*
 import org.koin.android.viewmodel.ext.android.viewModel
 import org.koin.standalone.KoinComponent
 
@@ -51,14 +53,20 @@ class LoggedDataFragment : Fragment(), KoinComponent {
                 var list = mutableListOf<String>()
                 when (intent.action) {
                     BroadcastHelper.ACTION_NEW_SMS_RECEIVED -> {
-                        list = vm.newSmsReceived()
+                        val element =
+                            intent.getSerializableExtra(BroadcastHelper.EXTRA_ELEMENT) as ListViewElement?
+                                ?: return
+                        list = vm.newSmsReceived(element)
                     }
                     BroadcastHelper.ACTION_NEW_USSD_RECEIVED -> {
-                        val element = intent.getParcelableExtra<ListViewElement>(BroadcastHelper.EXTRA_USSD) ?: return
+                        val element =
+                            intent.getSerializableExtra(BroadcastHelper.EXTRA_ELEMENT) as ListViewElement?
+                                ?: return
                         list = vm.newUssdReceived(element)
                     }
                 }
                 updateAdapterElements(list)
+                checkAndShowNonDeliveredMessagesView()
             }
         }
 
@@ -73,9 +81,28 @@ class LoggedDataFragment : Fragment(), KoinComponent {
             android.R.layout.simple_list_item_1,
             vm.getFormattedSmsAndUssdList()
         )
+        val list = vm.getFormattedSmsAndUssdList()
+        adapter =
+            object :
+                ArrayAdapter<String>(requireContext(), android.R.layout.simple_list_item_1, list) {
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val v = super.getView(position, convertView, parent)
+                    val tv = v.findViewById<View>(android.R.id.text1) as TextView
+                    tv.text = HtmlCompat.fromHtml(list[position], HtmlCompat.FROM_HTML_MODE_LEGACY)
+                    return v
+                }
+            }
         listview.adapter = adapter
+
+        vm.triedToSendLiveData.observe(viewLifecycleOwner, {
+            if (it) {
+                checkAndShowNonDeliveredMessagesView()
+                updateAdapterElements(vm.getFormattedSmsAndUssdList())
+            }
+        })
         registerReceivers()
         updateAdapterElements(vm.getFormattedSmsAndUssdList())
+        checkAndShowNonDeliveredMessagesView()
     }
 
     override fun onDestroy() {
@@ -112,6 +139,24 @@ class LoggedDataFragment : Fragment(), KoinComponent {
 
     private fun unregisterReceivers() {
         LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(smsAndUssdReceiver)
-        LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(permissionsGrantedReceiver)
+        LocalBroadcastManager.getInstance(requireContext())
+            .unregisterReceiver(permissionsGrantedReceiver)
+    }
+
+    private fun checkAndShowNonDeliveredMessagesView() {
+        val count = vm.getNonDeliveredMessages().size
+        val date = vm.getLastTransferAttemptDate()
+        val code = vm.getLastTransferAttemptCode()
+        if (count > 0 && date.isNotBlank() && code != 0) {
+            val text = getString(R.string.non_delivered_messages, count, date, code)
+            non_delivered.textview.text = text
+            non_delivered.button.setOnClickListener {
+                vm.tryToSendElements()
+                non_delivered.visibility = View.GONE
+            }
+            non_delivered.visibility = View.VISIBLE
+        } else {
+            non_delivered.visibility = View.GONE
+        }
     }
 }

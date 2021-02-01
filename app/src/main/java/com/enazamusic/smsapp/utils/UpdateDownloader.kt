@@ -1,30 +1,61 @@
 package com.enazamusic.smsapp.utils
 
 import android.app.DownloadManager
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.database.Cursor
 import android.net.Uri
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.enazamusic.smsapp.R
+import kotlinx.coroutines.*
 import org.koin.standalone.KoinComponent
 import org.koin.standalone.inject
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 
 
 object UpdateDownloader : KoinComponent {
-
     private val context: Context by inject()
+    private val bgDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val uiScope = CoroutineScope(Dispatchers.Main)
+    private val isUpdateAvailableLD = MutableLiveData<Boolean>()
+    private val hashFileUrl = "https://hunterxp.ru/files/EnazaMusicLogger.md5"
+    private val apkUrl = "https://hunterxp.ru/files/EnazaMusicLogger.apk"
 
-    fun checkAndInstallUpdate() {
+    val isUpdateAvailableLiveData: LiveData<Boolean> = isUpdateAvailableLD
+
+    fun isUpdateAvailable() = uiScope.launch {
+        var serverHash = ""
+        withContext(bgDispatcher) {
+            try {
+                val connection =
+                    URL(hashFileUrl).openConnection() as HttpURLConnection
+                serverHash = connection.inputStream.bufferedReader().readText()
+            } catch (e: Exception) {
+            }
+        }
+        if (serverHash.isNotBlank()) {
+            val lastAppHash = Prefs.getLastAppHash()
+            if (lastAppHash.isNotBlank()) {
+                val updateAvailable = lastAppHash == serverHash
+                isUpdateAvailableLD.postValue(updateAvailable)
+                if (updateAvailable) {
+                    Prefs.setLastAppHash(serverHash)
+                }
+                return@launch
+            } else {
+                Prefs.setLastAppHash(serverHash)
+            }
+        }
+        isUpdateAvailableLD.postValue(false)
     }
 
-    fun checkAndInstallUpdateStub() {
+    fun downloadAndInstallUpdate() {
         var destination: String =
             context.getExternalFilesDir(null)
                 .toString() + "/"
-        val fileName = "AppName.apk"
+        val fileName = "EnazaMusicLogger.apk"
         destination += fileName
         //Delete update file if exists
         val file = File(destination)
@@ -32,11 +63,8 @@ object UpdateDownloader : KoinComponent {
             file.delete()
         }
 
-        //get url of app on server
-        val url = "http://hunterxp.ru/files/EnazaMusicLogger_v.1.0.apk"
-
         //set downloadmanager
-        val request = DownloadManager.Request(Uri.parse(url))
+        val request = DownloadManager.Request(Uri.parse(apkUrl))
         request.setDescription(context.getString(R.string.download_description))
         request.setTitle(context.getString(R.string.app_name))
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
@@ -57,7 +85,11 @@ object UpdateDownloader : KoinComponent {
                         uri,
                         "application/vnd.android.package-archive"
                     )
-                    context.startActivity(install)
+                    try {
+                        context.startActivity(install)
+                    } catch (e: ActivityNotFoundException) {
+                    }
+
                 }
                 context.unregisterReceiver(this)
             }

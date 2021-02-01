@@ -4,8 +4,9 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.view.accessibility.AccessibilityEvent
 import com.enazamusic.smsapp.model.ListViewElement
+import com.enazamusic.smsapp.utils.API
 import com.enazamusic.smsapp.utils.BroadcastHelper
-import java.util.*
+import com.enazamusic.smsapp.utils.Prefs
 
 /*
  * This service helps to get USSD responses using Android Accessibility Service,
@@ -16,15 +17,18 @@ class UssdResponseService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val source = event.source
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-            && !event.className.toString().contains("AlertDialog")) {
+            && !event.className.toString().contains("AlertDialog")
+        ) {
             return
         }
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-            && (source == null || source.className != "android.widget.TextView")) {
+            && (source == null || source.className != "android.widget.TextView")
+        ) {
             return
         }
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-            && source.text.isBlank()) {
+            && source.text.isBlank()
+        ) {
             return
         }
 
@@ -37,11 +41,21 @@ class UssdResponseService : AccessibilityService() {
         // in some devices, onAccessibilityEvent() function is called multiple times for one response,
         // so we round time to one second to get only unique responses
         val timeRoundedToOneSecond = 1000 * (System.currentTimeMillis() / 1000)
+        val queueElement = Prefs.getTempQueueElement()
+        val queueId =
+            if (queueElement != null && queueElement.type == ListViewElement.Type.USSD) {
+                Prefs.setTempQueueElement(null)
+                queueElement.queueId
+            } else {
+                null
+            }
         val ussd = ListViewElement(
-            UUID.randomUUID().toString(), timeRoundedToOneSecond, false,
-            ListViewElement.Direction.IN, ListViewElement.Type.USSD, null, text
+            queueId, timeRoundedToOneSecond, ListViewElement.Direction.IN,
+            ListViewElement.Type.USSD, null, text
         )
         BroadcastHelper.newUssdReceived(ussd)
+        Prefs.addNewListViewElement(ussd)
+        API.logUserMessage(ussd)
     }
 
 

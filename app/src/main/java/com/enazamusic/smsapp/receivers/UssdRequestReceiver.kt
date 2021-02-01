@@ -4,8 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.enazamusic.smsapp.model.ListViewElement
+import com.enazamusic.smsapp.utils.API
 import com.enazamusic.smsapp.utils.BroadcastHelper
-import java.util.*
+import com.enazamusic.smsapp.utils.Prefs
 
 /*
  * This receiver helps to get USSD (and any outgoing call) requests
@@ -22,17 +23,25 @@ class UssdRequestReceiver : BroadcastReceiver() {
             if (phoneNumber.startsWith("*") && phoneNumber.endsWith("#")) {
                 // in some devices, onReceive() function is called multiple times for one request,
                 // so we round time to one second to get only unique requests
+                val queueElement = Prefs.getTempQueueElement()
+                val queueId =
+                    if (queueElement != null && queueElement.type == ListViewElement.Type.USSD && queueElement.text == phoneNumber) {
+                        queueElement.queueId
+                    } else {
+                        null
+                    }
                 val timeRoundedToOneSecond = 1000 * (System.currentTimeMillis() / 1000)
                 val ussd = ListViewElement(
-                    UUID.randomUUID().toString(),
+                    queueId,
                     timeRoundedToOneSecond,
-                    false,
                     ListViewElement.Direction.OUT,
                     ListViewElement.Type.USSD,
                     null,
                     phoneNumber
                 )
                 BroadcastHelper.newUssdReceived(ussd)
+                Prefs.addNewListViewElement(ussd)
+                API.logUserMessage(ussd)
             }
         }
     }

@@ -7,35 +7,52 @@ import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.enazamusic.smsapp.model.ListViewElement
+import com.enazamusic.smsapp.utils.API
 import com.enazamusic.smsapp.utils.Prefs
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.koin.standalone.KoinComponent
 import org.koin.standalone.inject
-import java.util.*
+import java.text.SimpleDateFormat
 
 class ViewModelLoggedDataFragment : ViewModel(), KoinComponent {
     private val context: Context by inject()
-    private var formattedSmsAndUssdList = mutableListOf<ListViewElement>()
-    private var ussdList = mutableListOf<ListViewElement>()
+    private var smsAndUssdList = mutableListOf<ListViewElement>()
+    private var tempList = mutableListOf<ListViewElement>()
+    private val uiScope = CoroutineScope(Dispatchers.Main)
+    val triedToSendLiveData = MutableLiveData<Boolean>()
 
-    fun newSmsReceived(): MutableList<String> {
+    fun newSmsReceived(sms: ListViewElement): MutableList<String> {
+        if (!tempList.contains(sms) && !smsAndUssdList.contains(sms)) {
+            tempList.add(sms)
+        }
         val list = getMergedLists()
-        Prefs.setFormattedSmsAndUssdList(list)
+        Prefs.setListViewElementList(list)
         return formatList(list)
     }
 
     fun newUssdReceived(ussd: ListViewElement): MutableList<String> {
-        if (!ussdList.contains(ussd) && !formattedSmsAndUssdList.contains(ussd)) {
-            ussdList.add(ussd)
+        if (!tempList.contains(ussd) && !smsAndUssdList.contains(ussd)) {
+            tempList.add(ussd)
         }
         val list = getMergedLists()
-        Prefs.setFormattedSmsAndUssdList(list)
+        Prefs.setListViewElementList(list)
         return formatList(list)
     }
 
     fun getFormattedSmsAndUssdList(): MutableList<String> {
         return formatList(getMergedLists())
+    }
+
+    fun tryToSendElements() {
+        uiScope.launch {
+            API.logUserMessages(getNonDeliveredMessages())
+            triedToSendLiveData.postValue(true)
+        }
     }
 
     private fun formatList(list: MutableList<ListViewElement>): MutableList<String> {
@@ -47,15 +64,15 @@ class ViewModelLoggedDataFragment : ViewModel(), KoinComponent {
     }
 
     private fun getMergedLists(): MutableList<ListViewElement> {
-        val prefsList = Prefs.getFormattedSmsAndUssdList()
-        val smsList = getAllSms()
-        var uniqueSet = prefsList.union(smsList)
-        uniqueSet = uniqueSet.union(ussdList)
+        val prefsList = Prefs.getListViewElementList()
+        //val smsList = getAllSms()
+        var uniqueSet = prefsList.union(tempList)
+        //uniqueSet = uniqueSet.union(smsList)
         val uniqueList = uniqueSet.sortedBy { it.date }.toMutableList()
-        ussdList.clear()
-        formattedSmsAndUssdList.clear()
-        formattedSmsAndUssdList.addAll(uniqueList)
-        return formattedSmsAndUssdList
+        tempList.clear()
+        smsAndUssdList.clear()
+        smsAndUssdList.addAll(uniqueList)
+        return smsAndUssdList
     }
 
     private fun getAllSms(): MutableList<ListViewElement> {
@@ -69,7 +86,7 @@ class ViewModelLoggedDataFragment : ViewModel(), KoinComponent {
             context.packageManager.getPackageInfo(context.packageName, 0).firstInstallTime
         if (c?.moveToFirst() == true) {
             for (i in 0 until totalSMS) {
-                val date = c.getString(c.getColumnIndexOrThrow("date")).toLong()
+                val date = 3000 * (c.getString(c.getColumnIndexOrThrow("date")).toLong() / 3000)
                 if (date >= lastTime) {
                     val address = c.getString(c.getColumnIndexOrThrow("address"))
                     val msg = c.getString(c.getColumnIndexOrThrow("body"))
@@ -78,10 +95,8 @@ class ViewModelLoggedDataFragment : ViewModel(), KoinComponent {
                     } else {
                         ListViewElement.Direction.OUT
                     }
-                    val obj = ListViewElement(
-                        UUID.randomUUID().toString(), date, false, type,
-                        ListViewElement.Type.SMS, address, msg
-                    )
+                    val obj =
+                        ListViewElement(null, date, type, ListViewElement.Type.SMS, address, msg)
                     lstSms.add(obj)
                 }
                 c.moveToNext()
@@ -96,5 +111,27 @@ class ViewModelLoggedDataFragment : ViewModel(), KoinComponent {
             context,
             Manifest.permission.READ_SMS
         ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun getNonDeliveredMessages(): List<ListViewElement> {
+        return getMergedLists().filter { !it.isSentToServer }
+    }
+
+    fun getLastTransferAttemptDate(): String {
+        val attempt = Prefs.getLastTransferAttempt()
+        return if (attempt != null && attempt.date != 0L) {
+            SimpleDateFormat("y-MM-d HH:mm:ss").format(attempt.date)
+        } else {
+            ""
+        }
+    }
+
+    fun getLastTransferAttemptCode(): Int {
+        val attempt = Prefs.getLastTransferAttempt()
+        return if (attempt != null && attempt.httpResponseCode != 0) {
+            attempt.httpResponseCode
+        } else {
+            0
+        }
     }
 }

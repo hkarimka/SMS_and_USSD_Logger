@@ -8,4 +8,10 @@
     <item
         android:id="@+id/menu_about"
         android:title="@string/toolbar_menu_about"/>
+    <item
+        android:id="@+id/change_phone_number"
+        android:title="@string/toolbar_menu_change_phone_number" />
+    <item
+        android:id="@+id/add_queue_elem"
+        android:title="@string/toolbar_menu_add_queue_elem" />
 </menu>
